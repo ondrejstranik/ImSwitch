@@ -22,17 +22,17 @@ class AVManager(DetectorManager):
         self._camera = self._getAVObj(detectorInfo.managerProperties['cameraListIndex'])
 
         model = self._camera.model
+        #self.model = model
         self._running = False
         
 
         for propertyName, propertyValue in detectorInfo.managerProperties['avcam'].items():
             self._camera.setPropertyValue(propertyName, propertyValue)
 
-        fullShape = (self._camera.getPropertyValue('image_width'),
-                     self._camera.getPropertyValue('image_height'))
-
-        self.crop(hpos=0, vpos=0, hsize=fullShape[0], vsize=fullShape[1])
+        fullShape = (self._camera.getPropertyValue("image_width"),
+                     self._camera.getPropertyValue("image_height"))
         self.pixel_format = self._camera.getPropertyValue("pixel_format")
+        self.crop(hpos=0, vpos=0, hsize=fullShape[0], vsize=fullShape[1])
         # Prepare parameters
         parameters = {
             'exposure': DetectorNumberParameter(group='Misc', value=100, valueUnits='ms',
@@ -45,7 +45,7 @@ class AVManager(DetectorManager):
                         editable=False),
             'image_height': DetectorNumberParameter(group='Misc', value=fullShape[1], valueUnits='arb.u.',
                         editable=False),
-            'pixel_format': DetectorListParameter(group='Misc', value='Mono12', options=['Mono8','Mono12'], editable=True)
+            'pixel_format': DetectorListParameter(group='Misc', value=self.pixel_format, options=['Mono8','Mono12'], editable=True)
             }            
 
         # Prepare actions
@@ -170,6 +170,7 @@ class AVManager(DetectorManager):
             from imswitch.imcontrol.model.interfaces.avcamera import CameraAV
             self.__logger.debug(f'Trying to initialize Allied Vision camera {cameraId}')
             camera = CameraAV(cameraId)
+            self.__logger.debug(f"Connected to camera")
         except Exception as e:
             self.__logger.error(e)
             self.__logger.warning(f'Failed to initialize AV camera {cameraId}, loading TIS mocker')

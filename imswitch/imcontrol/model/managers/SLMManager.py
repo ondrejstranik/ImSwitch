@@ -30,6 +30,8 @@ class SLMManager(SignalInterface):
         self.__maskRight = Mask(self.__slmSize[1], int(self.__slmSize[0] / 2), self.__wavelength)
         self.__masks = [self.__maskLeft, self.__maskRight]
 
+        self.__logger.debug(f'slmInfo : \n {self.__slmInfo}')
+
         self.initCorrectionMask()
         self.initTiltMask()
         self.initAberrationMask()

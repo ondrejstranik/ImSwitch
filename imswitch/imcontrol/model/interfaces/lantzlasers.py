@@ -69,6 +69,7 @@ def getLaser(iName, port):
         laser = driver(port)
         laser.initialize()
     except Exception as e1:
+        logger.error(f"Caught exception {type(e1)}: {e1}")
         driverNotFound = isinstance(e1, ModuleNotFoundError) or isinstance(e1, AttributeError)
 
         try:
