@@ -14,6 +14,7 @@ from .MotCorrWidget import MotCorrWidget
 from .PositionerWidget import PositionerWidget
 from .RecordingWidget import RecordingWidget
 from .SLMWidget import SLMWidget
+from .SLMbaseWidget import SLMbaseWidget
 from .ScanWidgetBase import ScanWidgetBase
 from .ScanWidgetMoNaLISA import ScanWidgetMoNaLISA
 from .ScanWidgetPointScan import ScanWidgetPointScan

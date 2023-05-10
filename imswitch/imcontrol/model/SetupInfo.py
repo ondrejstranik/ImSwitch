@@ -103,6 +103,9 @@ class RS232Info:
 
 @dataclass(frozen=True)
 class SLMInfo:
+    managerName: str
+    """ Name of the manager of the SLM"""
+    
     monitorIdx: int
     """ Index of the monitor in the system list of monitors (indexing starts at
     0). """

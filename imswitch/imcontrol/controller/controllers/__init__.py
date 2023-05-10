@@ -13,13 +13,13 @@ from .MotCorrController import MotCorrController
 from .PositionerController import PositionerController
 from .RecordingController import RecordingController
 from .SLMController import SLMController
+from .SLMbaseController import SLMbaseController
 from .ScanControllerBase import ScanControllerBase
 from .ScanControllerMoNaLISA import ScanControllerMoNaLISA
 from .ScanControllerPointScan import ScanControllerPointScan
 from .RotationScanController import RotationScanController
 from .RotatorController import RotatorController
 from .SettingsController import SettingsController
-from .SLMController import SLMController
 from .TilingController import TilingController
 from .ULensesController import ULensesController
 from .ViewController import ViewController
