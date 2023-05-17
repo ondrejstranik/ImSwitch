@@ -14,6 +14,7 @@ from .PositionerController import PositionerController
 from .RecordingController import RecordingController
 from .SLMController import SLMController
 from .SLMbaseController import SLMbaseController
+from .SLMbasicController import SLMbasicController
 from .ScanControllerBase import ScanControllerBase
 from .ScanControllerMoNaLISA import ScanControllerMoNaLISA
 from .ScanControllerPointScan import ScanControllerPointScan
