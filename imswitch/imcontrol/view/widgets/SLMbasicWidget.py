@@ -7,7 +7,7 @@ from imswitch.imcontrol.view import guitools
 from .basewidgets import NapariHybridWidget
 
 
-class SLMbaseWidget(NapariHybridWidget):
+class SLMbasicWidget(NapariHybridWidget):
     """ Widget containing basic slm interface. """
 
     sigSLMDisplayToggled = QtCore.Signal(bool)  # (enabled)
