@@ -27,3 +27,4 @@ from .TilingWidget import TilingWidget
 from .ULensesWidget import ULensesWidget
 from .ViewWidget import ViewWidget
 from .WatcherWidget import WatcherWidget
+from .PtychoWidget import PtychoWidget
