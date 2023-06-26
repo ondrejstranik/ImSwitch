@@ -270,6 +270,19 @@ class PyroServerInfo:
     port: Optional[int] = 54333
     active: Optional[bool] = False
 
+@dataclass(frozen=True)
+class PtychoInfo:
+    nMax: Optional[int] = 100
+    """ Number of measurment positions"""
+    probe_size_mm: Optional[float] = 50
+    """ Size of the probe in mm"""
+    cameraName: Optional[str] = ''
+    """ name of the camera used"""
+    binning: Optional[int] = 1
+    """ exposure of the camera"""
+    exposure_ms: Optional[int] = 100
+
+
 
 @dataclass_json(undefined=Undefined.INCLUDE)
 @dataclass
@@ -326,6 +339,9 @@ class SetupInfo:
 
     pyroServerInfo: PyroServerInfo = field(default_factory=PyroServerInfo)
 
+    ptychoInfo: PtychoInfo = field(default_factory=PtychoInfo)
+
+
     _catchAll: CatchAll = None
 
     def getDevice(self, deviceName):
@@ -367,6 +383,12 @@ class SetupInfo:
             devices.update(deviceInfos)
 
         return devices
+
+
+
+
+
+
 
 
 # Copyright (C) 2020-2021 ImSwitch developers

@@ -6,13 +6,13 @@ from pyqtgraph.dockarea import Dock
 
 from imswitch.imcommon.view.guitools import pyqtgraphtools
 from imswitch.imcontrol.view import guitools
-from .basewidgets import Widget
+from .basewidgets import NapariHybridWidget
 
 from imswitch.imcommon.model import initLogger
 
 import numpy as np
 
-class PtychoWidget(Widget):
+class PtychoWidget(NapariHybridWidget):
     """ Run the ptychography data acquisition """
 
     sigStartMeasurement = QtCore.Signal()
@@ -20,9 +20,11 @@ class PtychoWidget(Widget):
     sigUpdateParameters = QtCore.Signal()
 
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, *args, **kwargs):
+        #super().__init__(*args, **kwargs)
         self.__logger = initLogger(self)
+
+        self.layer = None
 
         # 1. Panel - Selection Parameter
 
@@ -48,7 +50,7 @@ class PtychoWidget(Widget):
                     {
                         "name": "number of points",
                         "type": "int",
-                        "value": 200,
+                        "value": 10,
                         "limits": (1, 599),
                         "step": 1,
                         "suffix": "",
@@ -75,16 +77,19 @@ class PtychoWidget(Widget):
                         "value": 50,
                         "limits": (1, 100),
                         "step": 10,
-                        "suffix": "rad",
                     },
                     {   "name": "Saving folder",
                         "type": "str",
-                        "value": r"G:\office\work\projects - funded\23-02-24 holominflux\23-06-09 imwitch_test\DATA_TEST"},
+                        "value": r"C:\Users\ostranik\Documents\holominflux\DATA\23-06-19 ptychodata"},
                     {
                         "name": "Saving filename",
                         "type": "str",
                         "value": r"ptychodata",
                     },
+                    {   "name": "camera name",
+                        "type": "str",
+                        "value": "cam1",
+                    }
                 ],
             }
         ]
@@ -133,13 +138,15 @@ class PtychoWidget(Widget):
         # Panels  -place them on the widget
         self.gridLayout = QtWidgets.QGridLayout()
         self.setLayout(self.gridLayout)
-        self.gridLayout.addWidget(self.parameterPanel, 0, 0, 1, 1)
-        self.gridLayout.addWidget(self.acquisitionPanel, 1, 0, 1, 1)
-        self.gridLayout.addWidget(self.pathImagePanel, 0, 1, 0, 1)
+        self.gridLayout.addWidget(self.pathImagePanel, 0, 0, 4, 0)
+        self.gridLayout.addWidget(self.parameterPanel, 4, 0, 2, 0)
+        self.gridLayout.addWidget(self.acquisitionPanel, 6, 0, 1, 0)
 
 
         # Connect signals
         self.parameterPanel.buttonUP.pressed.connect(self.sigUpdateParameters)
+        self.acquisitionPanel.buttonSM.pressed.connect(self.sigStartMeasurement)
+        self.acquisitionPanel.buttonStM.pressed.connect(self.sigStopMeasurement)
 
 
     def _plotPath(self, coordinates:np.array):
@@ -177,7 +184,7 @@ class PtychoWidget(Widget):
 
         # define the parameters of the plot
         p1.setAspectLocked(True)
-        p1.setTitle(f'{len(self.grid_generator.coordinates)} positions')
+        p1.setTitle(f'{len(coordinates)} positions')
         styles = {'color':'r', 'font-size':'20px'}
         p1.setLabel('left', ' Y', units='m')
         p1.setLabel('bottom', 'X', units= 'm')
@@ -189,12 +196,29 @@ class PtychoWidget(Widget):
 
         self.pathImagePanel.stagePosition.setData([{'pos':[stageX*1e-3,stageY*1e-3]}])
         if stagePosIdx == -1:
-            self.pathImagePanel.setTitle(f'{len(stagePosIdxMax)} positions')
+            self.pathImagePanel.setTitle(f'{stagePosIdxMax} positions')
         else:
             self.pathImagePanel.setTitle(f'{stagePosIdx} of {stagePosIdxMax} positions')
 
 
         self.__logger.debug('Updating stage position')            
+
+    def showPtychogram(self,im, colormap="gray", name="Ptychogram", pixelsize=None, translation=None):
+        ''' show the recorded ptychogram in as Napari layer in image widget'''
+    
+        if translation is None:
+            translation = [0]*len(im.shape)
+
+        if pixelsize is None:
+            pixelsize = [1]*len(im.shape)
+        
+        if self.layer is None or name not in self.viewer.layers:
+            self.layer = self.viewer.add_image(im, rgb=False, colormap=colormap, 
+                                               scale=pixelsize,translate=translation,
+                                               name=name, blending='additive')
+        self.layer.data = im
+
+
 
 
     def _guiStartMeasurement(self):
@@ -211,6 +235,31 @@ class PtychoWidget(Widget):
         self.parameterPanel.buttonUP.setEnabled(True)
         self.acquisitionPanel.buttonSM.setEnabled(True)
         self.acquisitionPanel.buttonStM.setEnabled(False)
+
+    def getParameterValue(self,name:str, key="general"):
+        ''' return the value of parameter in the parameters three'''
+        return  self.ptychoParameterTree.p.param(key).param(name).value()
+    
+    def setParameterValue(self,name:str, value, key="general",default=True):
+        ''' set the value of the parameter in the parameters three'''
+        self.ptychoParameterTree.p.param(key).param(name).setValue(value)
+        if default:
+            self.ptychoParameterTree.p.param(key).param(name).setDefault(value)
+
+    # TODO: this function is not working
+    def setParametersValue(self,name:str, values:list, value, key="general"):
+        ''' set the values list and value of the parameter in the parameters three'''
+       
+        if True:
+            pass
+        else:
+            self.ptychoParameterTree.p.param(key).param(name).setOpts(**{"values":values})
+                    
+            if value in values:
+                self.setParameterValue(name,value)
+            else:
+                self.setParameterValue(name,values[0])
+
 
 
 
