@@ -282,6 +282,15 @@ class PtychoInfo:
     """ exposure of the camera"""
     exposure_ms: Optional[int] = 100
 
+@dataclass(frozen=True)
+class AotfInfo:
+    managerName: str
+    """ Name of the manager to use. """
+    nChannel: Optional[int] = 1
+    """ Number of channels, which can be modulated"""
+    managerProperties: Optional[Dict[str, Any]] = None
+""" Properties to be read by the manager. """
+
 
 
 @dataclass_json(undefined=Undefined.INCLUDE)
@@ -340,6 +349,8 @@ class SetupInfo:
     pyroServerInfo: PyroServerInfo = field(default_factory=PyroServerInfo)
 
     ptychoInfo: PtychoInfo = field(default_factory=PtychoInfo)
+
+    aotf: Optional[AotfInfo] = field(default_factory=lambda: None)
 
 
     _catchAll: CatchAll = None

@@ -12,3 +12,4 @@ from .ScanManagerBase import ScanManagerBase
 from .ScanManagerMoNaLISA import ScanManagerMoNaLISA
 from .StandManager import StandManager
 from .RotatorsManager import RotatorsManager
+from .NKTAotfManager import NKTAotfManager

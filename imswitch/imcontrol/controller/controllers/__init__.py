@@ -26,3 +26,4 @@ from .ULensesController import ULensesController
 from .ViewController import ViewController
 from .WatcherController import WatcherController
 from .PtychoController import PtychoController
+from .MultiAotfController import MultiAOTFController

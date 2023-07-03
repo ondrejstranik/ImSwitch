@@ -1,10 +1,6 @@
 import numpy as np
 from pathlib import Path
 
-from ptypyLab.Model.GridGenerator import GridGenerator
-from ptypyLab.Controller.Storage.h5 import DataStorage
-from ptypyLab import dataContainer
-
 import time
 
 
@@ -24,6 +20,15 @@ class PtychoController(ImConWidgetController):
         super().__init__(*args, **kwargs)
         self.__logger = initLogger(self)
 
+        try:
+            from ptypyLab.Model.GridGenerator import GridGenerator
+            from ptypyLab.Controller.Storage.h5 import DataStorage
+            from ptypyLab import dataContainer
+        except ImportError:
+            self._logger.error('ptypyLab package not installed')
+            return 
+
+        
         # set the parameters from json/default
         self._widget.setParameterValue("number of points",
             self._setupInfo.ptychoInfo.nMax)

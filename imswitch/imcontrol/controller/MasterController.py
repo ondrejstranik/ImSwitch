@@ -1,7 +1,8 @@
 from imswitch.imcommon.model import VFileItem, initLogger
 from imswitch.imcontrol.model import (
     DetectorsManager, LasersManager, MultiManager, NidaqManager, PositionersManager, RecordingManager, RS232sManager, 
-    ScanManagerPointScan, ScanManagerBase, ScanManagerMoNaLISA, SLMManager, SLMbaseManager, StandManager, RotatorsManager
+    ScanManagerPointScan, ScanManagerBase, ScanManagerMoNaLISA, SLMManager, SLMbaseManager, StandManager, RotatorsManager,
+    NKTAotfManager
 )
 
 
@@ -51,6 +52,16 @@ class MasterController:
                     ' ["SLMManager", "SLMbaseManager"].'
                 )
                 return
+        
+        # Generate aotfManager type according the setupInfo
+        if self.__setupInfo.aotf:
+            if self.__setupInfo.aotf.managerName == "NKTAotfManager":
+                self.aotfManager = NKTAotfManager(self.__setupInfo.aotf,**lowLevelManagers)
+            else:
+                self.__logger.error('AOTFManager in SetupInfo["aotf"] not recognised')
+                return
+        else:
+                self.aotfManager = NKTAotfManager(self.__setupInfo.aotf,**lowLevelManagers)
 
 
         if self.__setupInfo.microscopeStand:
@@ -103,6 +114,11 @@ class MasterController:
             attr = getattr(self, attrName)
             if isinstance(attr, MultiManager):
                 attr.finalize()
+            elif ("Manager" in attrName) and (
+                hasattr(attr, 'finalize')) and (
+                callable(attr.finalize)):
+                attr.finalize()                
+
 
 
 # Copyright (C) 2020-2021 ImSwitch developers

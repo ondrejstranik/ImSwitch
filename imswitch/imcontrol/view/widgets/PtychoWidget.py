@@ -24,6 +24,7 @@ class PtychoWidget(NapariHybridWidget):
         #super().__init__(*args, **kwargs)
         self.__logger = initLogger(self)
 
+        # layer in the napari widget for display of the recorded images
         self.layer = None
 
         # 1. Panel - Selection Parameter

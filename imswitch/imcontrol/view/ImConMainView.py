@@ -76,7 +76,8 @@ class ImConMainView(QtWidgets.QMainWindow):
             'FFT': _DockInfo(name='FFT Tool', yPosition=3),
             'Watcher': _DockInfo(name='File Watcher', yPosition=3),
             'Tiling': _DockInfo(name='Tiling', yPosition=3),
-            'Ptycho': _DockInfo(name = 'Ptychography Tool', yPosition=0)
+            'Ptycho': _DockInfo(name = 'Ptychography Tool', yPosition=0),
+            'MultiAOTF': _DockInfo(name = 'multi channel AOTF Tool', yPosition=0)
         }
         leftDockInfos = {
             'Settings': _DockInfo(name='Detector Settings', yPosition=0),
