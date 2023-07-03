@@ -1,0 +1,36 @@
+{
+    "rs232devices": {
+        "NKT": {
+            "managerName": "NKTManager",
+            "managerProperties": 
+            {
+                "pathToSDK": "C:/Users/Public/Documents/NKT Photonics/SDK",
+                "COM": 5                
+            }
+        }
+    },    
+    "lasers": {
+        "white light": {
+            "analogChannel": null,
+            "digitalLine": "Dev1/port0/line9",
+            "managerName": "NKTLaserManager",
+            "managerProperties":{
+                "id": 15
+            },
+            "wavelength": 435,
+            "valueRangeMin": 0,
+            "valueRangeMax": 100
+        }
+    },
+    "aotf": {
+        "managerName": "NKTAotfManager",
+        "managerProperties":{
+            "id": 17
+        },
+        "nChannel" : 5
+    },
+    "availableWidgets": [
+        "Laser",
+        "MultiAOTF"
+    ]
+}
