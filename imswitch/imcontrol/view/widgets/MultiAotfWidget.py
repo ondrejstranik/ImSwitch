@@ -5,7 +5,7 @@ from pyqtgraph.dockarea import Dock
 import pyqtgraph as pg
 
 from imswitch.imcommon.model import initLogger
-
+from imswitch.imcommon.model import shortcut
 
 from .basewidgets import Widget
 
@@ -128,6 +128,10 @@ class MultiAOTFWidget(Widget):
 
         self.__logger.debug(f'cInfo: \n {cInfo}')
         return cInfo
+
+    @shortcut("Ctrl+Shift+U","Update AOTF")
+    def pressUpdateButton(self):
+        self.parameterPanel.buttonUP.click()
 
 
 

@@ -10,6 +10,13 @@ from ..basecontrollers import ImConWidgetController, LiveUpdatedController
 
 from imswitch.imcommon.model import initLogger
 
+try:
+    from ptypyLab.Model.GridGenerator import GridGenerator
+    from ptypyLab.Controller.Storage.h5 import DataStorage
+    from ptypyLab import dataContainer
+except ImportError:
+    print('ptypyLab package not installed. Do not use PtychoWidget/Controller')
+
 class PtychoController(ImConWidgetController):
 #class PtychoController(LiveUpdatedController):
     """ Linked to PtychoWidget."""
@@ -20,20 +27,17 @@ class PtychoController(ImConWidgetController):
         super().__init__(*args, **kwargs)
         self.__logger = initLogger(self)
 
-        try:
-            from ptypyLab.Model.GridGenerator import GridGenerator
-            from ptypyLab.Controller.Storage.h5 import DataStorage
-            from ptypyLab import dataContainer
-        except ImportError:
-            self._logger.error('ptypyLab package not installed')
-            return 
-
-        
         # set the parameters from json/default
         self._widget.setParameterValue("number of points",
             self._setupInfo.ptychoInfo.nMax)
         self._widget.setParameterValue("size of probe",
             self._setupInfo.ptychoInfo.probe_size_mm)
+        self._widget.setParameterValue("Saving folder",
+            self._setupInfo.ptychoInfo.savingPath)
+        self._widget.setParameterValue("Saving filename",
+            self._setupInfo.ptychoInfo.filename)
+        self._widget.setParameterValue("wavelength",
+            self._setupInfo.ptychoInfo.wavelength_nm)
 
         # set the detector from json/default
         allDetectorNames = self._master.detectorsManager.getAllDeviceNames()
@@ -48,14 +52,16 @@ class PtychoController(ImConWidgetController):
         self.detector.setBinning(self._setupInfo.ptychoInfo.binning)
         self.detector.setParameter("exposure",self._setupInfo.ptychoInfo.exposure_ms)
 
-        # flag for taking an image
-        self.looping = False
-
         # file numbering
         self.filenumber = 1
+        # wavelength
+        self.wavelenght = None
 
         # define gridgenerator
         self.grid_generator = GridGenerator()
+        # fixed grid parameters
+        self.grid_generator.type = "square"
+        self.grid_generator.extent_mm = "auto"  # either range in mm or 'auto' 0.4
 
         # parameters for the recording
         self.storage = None
@@ -82,9 +88,6 @@ class PtychoController(ImConWidgetController):
     def updateParametersFromWidget(self):
         """update parameters from the widget"""
 
-        # fixed parameters
-        self.grid_generator.type = "square"
-        self.grid_generator.extent_mm = "auto"  # either range in mm or 'auto' 0.4
         self.grid_generator.probe_size_mm = (
             self._widget.getParameterValue("size of probe")
         )
@@ -105,7 +108,7 @@ class PtychoController(ImConWidgetController):
             self._widget.getParameterValue("camera name")
         ]
         
-        
+        self.wavelenght = self._widget.getParameterValue("wavelength")
         
         self.__logger.debug('Parameters updated')
 
@@ -122,31 +125,51 @@ class PtychoController(ImConWidgetController):
 
     def startMeasurement(self):
         ''' prepare all the variable for recording and gui'''
-        # start the camera running
-        # handle_Acq = self._master.detectorsManager.startAcquisition(liveView=True)
-
-        #self.detector.startAcquisition(liveView=True)
+        # get one image in order to allocate the size of the image
         self.detector.startAcquisition()
-
+        im = self.detector.getLatestFrame()
+        while im.size == 0:
+            sleeptime = min(10e-3,self.Detector.parameters['exposure'].value/1e3/10)
+            time.sleep(sleeptime)
+            im = self.Detector.getLatestFrame()
+        self.detector.stopAcquisition()
 
 
         # create the data storage
         self.storage = DataStorage(self.fullfilename, append_tag=True)
 
+        # determine the wavelength
+        try:
+            mywavelength = float(self.wavelength)
+            self.__logger.debug(f'wavelength from string .. {mywavelength}')
+        except:
+            try:
+                splitString = self.wavelength.split("/")
+                if splitString[0] == 'laser':
+                    mywavelength = self._master.lasersManager.__getitem__(splitString[1]).wavelength
+                    self.__logger.debug(f'wavelength from laser .. {mywavelength}')
+                if splitString[0] == 'aotf':
+                    mywavelength = self._master.aotfManager.getChannelWavelength(int(splitString[1])) 
+                    self.__logger.debug(f'wavelength from aotf .. {mywavelength}')
+            except:
+                mywavelength = 1
+                self.__logger.debug(f'wavelength not obtained. set to .. {mywavelength}')
+
+        
         extra_info = dict(
             target_coordinate = self.grid_generator.coordinates,
             exposure_time=self.detector.parameters['exposure'].value,
             binning=self.detector.binning,
-            offset= list(self.detector.frameStart)
+            offset= list(self.detector.frameStart),
+            wavelength = mywavelength
         )
         self.storage.add_metadata(extra_info)
 
         self._logger.debug(self.detector.parameters)
 
         # alocate space for the data in the storage
-        myim = self.detector.getLatestFrame()
         cameraName = self.detector.model
-        picture_dictionary = {cameraName: dataContainer(data=myim, image=True, show_FT=False, show=True)}
+        picture_dictionary = {cameraName: dataContainer(data=im, image=True, show_FT=False, show=True)}
         info = {}
         info.update(picture_dictionary)
         self.storage.prepare_measurement(info,len(self.grid_generator.coordinates))
@@ -155,14 +178,6 @@ class PtychoController(ImConWidgetController):
         # set gui
         self._widget._guiStartMeasurement()
 
-        # prepare stage worker
-        # TODO: temp       
-        '''
-        self.stageWorker = self.StageWorker(
-            self._master.PositionsManager,
-            self.grid_generator.coordinates
-            )
-        '''
         self.stageWorker = self.StageWorker(
             None,self.detector,
             self.grid_generator.coordinates
@@ -207,69 +222,38 @@ class PtychoController(ImConWidgetController):
 
     def measurementStep(self, newPosition, recordedImage):
         ''' record single image'''
-        #self.detector.startAcquisition()
-        #self.looping = True
         self.__logger.debug('New measurement step')
 
-#    def update(self, detectorName, im, init, scale, isCurrentDetector):
-    #def update(self):
+       
+        if not self.stageWorker.pathFinished:
+            # just renaming
+            myim = recordedImage
 
-        ''' single step in the measurements sequence'''
-        
-        #self.__logger.debug('New Image')
+            self.__logger.debug(f"image size {myim.shape}") 
 
-        self.looping = True
-        if self.looping:
-        
-            #self.detector.stopAcquisition()
+            self._widget.showPtychogram(myim)
 
-            if not self.stageWorker.pathFinished:
+            # save the image
+            cameraName = self.detector.model
+            picture_dictionary = {cameraName: dataContainer(data=myim, image=True, show_FT=False, show=True)}
+            # info ... whole dataset
+            info = {}
+            info.update(picture_dictionary)
+            self.storage.add_measurement(info)
+
+            # update widget plot
+            self._widget._plotStagePosition(
+                self.stageWorker.stagePosX,
+                self.stageWorker.stagePosY,
+                self.stageWorker.stagePosIdx,
+                self.stageWorker.nPos)
             
-                '''
-                # record the image
-                self.detector.startAcquisition()
+            # start moving the stage to new position
+            self.sigMoveStage.emit()
 
-                im = self.detector.getLatestFrame()
+        else:
+            self.finishMeasurement()
 
-                while im.size == 0:
-                    time.sleep(self.detector.parameters['exposure'].value/1e3/10)
-                    im = self.detector.getLatestFrame()
-                    self.__logger.debug(f' size {im.size}')
-
-                self.detector.stopAcquisition()
-
-                # get now recording image
-                #myim = self.detector.getLatestFrame()
-                myim = im
-                '''
-                myim = recordedImage
-
-                self.__logger.debug(f"image size {myim.shape}") 
-
-                self._widget.showPtychogram(myim)
-
-                # save the image
-                cameraName = self.detector.model
-                picture_dictionary = {cameraName: dataContainer(data=myim, image=True, show_FT=False, show=True)}
-                # info ... whole dataset
-                info = {}
-                info.update(picture_dictionary)
-                self.storage.add_measurement(info)
-
-                # update widget plot
-                self._widget._plotStagePosition(
-                    self.stageWorker.stagePosX,
-                    self.stageWorker.stagePosY,
-                    self.stageWorker.stagePosIdx,
-                    self.stageWorker.nPos)
-                
-                # start moving the stage to new position
-                self.sigMoveStage.emit()
-
-            else:
-                self.finishMeasurement()
-
-            self.looping = False
 
     class StageWorker(Worker):
         '''' class to carry out the stage movement along certain path'''

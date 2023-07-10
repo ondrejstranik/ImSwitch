@@ -75,6 +75,10 @@ class NktLaserControl:
         # set power
         registerWriteU16(self.com_str, self.aotfId, int(0xB0 + channel), int(amplitude * 10), -1)
 
+    def getLaserChannelWavelength(self,channel):
+        return registerReadU32(self.com_str, self.aotfId, int(0x90 + channel),-1)
+
+
     def allChannelZeroAmplitude(self):
         for ii in range(8):
             registerWriteU16(self.com_str, self.aotfId, int(0xB0 + ii), 0, -1)

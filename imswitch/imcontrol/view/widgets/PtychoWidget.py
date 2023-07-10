@@ -42,10 +42,8 @@ class PtychoWidget(NapariHybridWidget):
                 "children": [
                     {
                         "name": "wavelength",
-                        "type": "float",
-                        "value": 550,
-                        "limits": (400, 900),
-                        "step": 1,
+                        "type": "str",
+                        "value": "550",
                         "suffix": "nm",
                     },
                     {
@@ -81,7 +79,7 @@ class PtychoWidget(NapariHybridWidget):
                     },
                     {   "name": "Saving folder",
                         "type": "str",
-                        "value": r"C:\Users\ostranik\Documents\holominflux\DATA\23-06-19 ptychodata"},
+                        "value": r"C:"},
                     {
                         "name": "Saving filename",
                         "type": "str",

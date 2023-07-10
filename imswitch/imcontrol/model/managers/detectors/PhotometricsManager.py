@@ -31,7 +31,7 @@ class PhotometricsManager(DetectorManager):
         parameters = {
             'Set exposure time': DetectorNumberParameter(group='Timings', value=0,
                                                          valueUnits='ms', editable=True),
-            'Real exposure time': DetectorNumberParameter(group='Timings', value=0,
+            'exposure': DetectorNumberParameter(group='Timings', value=0,
                                                           valueUnits='ms', editable=False),
             'Readout time': DetectorNumberParameter(group='Timings', value=0,
                                                     valueUnits='ms', editable=False),
@@ -55,7 +55,7 @@ class PhotometricsManager(DetectorManager):
         super().__init__(detectorInfo, name, fullShape=fullShape, supportedBinnings=[1, 2, 4],
                          model=model, parameters=parameters, croppable=True)
         self._updatePropertiesFromCamera()
-        super().setParameter('Set exposure time', self.parameters['Real exposure time'].value)
+        super().setParameter('Set exposure time', self.parameters['exposure'].value)
 
     @property
     def pixelSizeUm(self):
@@ -110,17 +110,26 @@ class PhotometricsManager(DetectorManager):
         self._performSafeCameraAction(binningAction)
 
     def setParameter(self, name, value):
+        
+        if name=='exposure':
+            name= 'Set exposure time'
+
         super().setParameter(name, value)
 
         if name == 'Set exposure time':
             self._setExposure(value)
-            self._updatePropertiesFromCamera()
+            super().setParameter('exposure', self._camera.exp_time)
         elif name == 'Trigger source':
             self._setTriggerSource(value)
         elif name == 'Readout port':
             self._setReadoutPort(value)
         elif name == 'Number of frames per chunk':
             self.__chunkFrameSize = int(value)
+
+        if self.__acquisition == True:
+            self.stopAcquisition()
+            self.startAcquisition()
+
         return self.parameters
 
     def startAcquisition(self):
@@ -134,6 +143,9 @@ class PhotometricsManager(DetectorManager):
 
     def _setExposure(self, time):
         self._camera.exp_time = int(time)
+        self.__logger.debug(f"try to change Camera exposure to {int(time)}")
+        self.__logger.debug(f"actual camera exposure{self._camera.exp_time}")
+
 
     def _setTriggerSource(self, source):
         self.__logger.debug("Change trigger source")
@@ -192,7 +204,7 @@ class PhotometricsManager(DetectorManager):
             function()
 
     def _updatePropertiesFromCamera(self):
-        self.setParameter('Real exposure time', self._camera.exp_time)
+        self.setParameter('exposure', self._camera.exp_time)
         triggerSource = self._camera.exp_mode
         if triggerSource == 1792:
             self.setParameter('Trigger source', 'Internal trigger')

@@ -46,6 +46,9 @@ class NKTAotfManager:
         else:
             self.__logger.error(res)
 
+        #set all channels to zero
+        self._aotf.allChannelZeroAmplitude()
+
         self._nChannel = aotfInfo.nChannel
 
     #@NKTconnected
@@ -61,6 +64,10 @@ class NKTAotfManager:
 
     def getNChannel(self):
         return self._nChannel
+    
+    def getChannelWavelength(self,channelNumber):
+        """ get current wavelength of given channel"""
+        return self._aotf.getLaserChannelWavelength(channelNumber)
 
     #@NKTconnected
     def finalize(self) -> None:

@@ -279,8 +279,21 @@ class PtychoInfo:
     cameraName: Optional[str] = ''
     """ name of the camera used"""
     binning: Optional[int] = 1
-    """ exposure of the camera"""
+    """ binning of the camera"""
     exposure_ms: Optional[int] = 100
+    """ exposure of the camera"""
+    savingPath: Optional["str"] = "C:"
+    """ path to save files"""
+    filename: Optional["str"] = "ptychodata"
+    """ path to save files"""
+    wavelength_nm: Optional["str"] = "500"
+    """ wavelenght (as a string) or light source identification in the form:
+    1. laser/laserName  
+    2. aotf/channelnumber
+    """
+
+
+
 
 @dataclass(frozen=True)
 class AotfInfo:
