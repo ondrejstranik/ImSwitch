@@ -70,13 +70,15 @@ class NktLaserControl:
         return mymessage
 
     def setLaserChannel(self, channel, wavelength, amplitude):
+        ''' set the wavelength in nm'''
         # set wavelength 
         registerWriteU32(self.com_str, self.aotfId, int(0x90 + channel), int(wavelength * 1000), -1)
         # set power
         registerWriteU16(self.com_str, self.aotfId, int(0xB0 + channel), int(amplitude * 10), -1)
 
     def getLaserChannelWavelength(self,channel):
-        return registerReadU32(self.com_str, self.aotfId, int(0x90 + channel),-1)
+        ''' return wavelength in nm'''
+        return registerReadU32(self.com_str, self.aotfId, int(0x90 + channel),-1)[1]/1000
 
 
     def allChannelZeroAmplitude(self):

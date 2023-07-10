@@ -278,6 +278,8 @@ class PtychoInfo:
     """ Size of the probe in mm"""
     cameraName: Optional[str] = ''
     """ name of the camera used"""
+    positionerName: Optional[str] = ''
+    """ name of the positioner used"""
     binning: Optional[int] = 1
     """ binning of the camera"""
     exposure_ms: Optional[int] = 100

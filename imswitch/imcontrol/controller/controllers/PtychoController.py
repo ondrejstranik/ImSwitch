@@ -48,6 +48,16 @@ class PtychoController(ImConWidgetController):
         self._widget.setParameterValue("camera name", DetectorName)
         self.detector = self._master.detectorsManager[DetectorName]
 
+        # set the positioner from json/default
+        allPositionerNames = self._master.positionersManager.getAllDeviceNames()
+        if self._setupInfo.ptychoInfo.positionerName in allPositionerNames:
+            positionerName= self._setupInfo.ptychoInfo.positionerName
+        else:
+            positionerName = allPositionerNames[0]
+        self._widget.setParameterValue("positioner name", positionerName)
+        self.positioner = self._master.positionersManager[positionerName]
+
+
         # set other parameters of the detector from json/default
         self.detector.setBinning(self._setupInfo.ptychoInfo.binning)
         self.detector.setParameter("exposure",self._setupInfo.ptychoInfo.exposure_ms)
@@ -55,7 +65,7 @@ class PtychoController(ImConWidgetController):
         # file numbering
         self.filenumber = 1
         # wavelength
-        self.wavelenght = None
+        self.wavelength = None
 
         # define gridgenerator
         self.grid_generator = GridGenerator()
@@ -108,7 +118,11 @@ class PtychoController(ImConWidgetController):
             self._widget.getParameterValue("camera name")
         ]
         
-        self.wavelenght = self._widget.getParameterValue("wavelength")
+        self.positioner = self._master.positionersManager[
+            self._widget.getParameterValue("positioner name")
+        ]
+
+        self.wavelength = self._widget.getParameterValue("wavelength")
         
         self.__logger.debug('Parameters updated')
 
@@ -121,6 +135,9 @@ class PtychoController(ImConWidgetController):
         self.fullfilename = Path(
             self._widget.getParameterValue("Saving folder"),
             newFilename)
+
+    def recordDark(self):
+        pass
 
 
     def startMeasurement(self):
@@ -145,11 +162,12 @@ class PtychoController(ImConWidgetController):
         except:
             try:
                 splitString = self.wavelength.split("/")
+                self.__logger.debug(f'{splitString}')
                 if splitString[0] == 'laser':
                     mywavelength = self._master.lasersManager.__getitem__(splitString[1]).wavelength
                     self.__logger.debug(f'wavelength from laser .. {mywavelength}')
                 if splitString[0] == 'aotf':
-                    mywavelength = self._master.aotfManager.getChannelWavelength(int(splitString[1])) 
+                    mywavelength = self._master.aotfManager.getChannelWavelength(int(splitString[1])-1) 
                     self.__logger.debug(f'wavelength from aotf .. {mywavelength}')
             except:
                 mywavelength = 1
@@ -179,7 +197,8 @@ class PtychoController(ImConWidgetController):
         self._widget._guiStartMeasurement()
 
         self.stageWorker = self.StageWorker(
-            None,self.detector,
+            self.positioner,
+            self.detector,
             self.grid_generator.coordinates
             )
 
@@ -258,8 +277,6 @@ class PtychoController(ImConWidgetController):
     class StageWorker(Worker):
         '''' class to carry out the stage movement along certain path'''
         sigStageMoved = Signal(list, np.ndarray)
-        stageOriginX = 0
-        stageOriginY = 0
 
         def __init__(self,PositionerManager,Detector,coordinates:np.array):
             super().__init__()
@@ -267,11 +284,16 @@ class PtychoController(ImConWidgetController):
             self.nPos = len(self.coordinates)
             self.stagePosIdx = -1
             self.stagePosIdxMutex = Mutex()
-            self.stagePosX = self.stageOriginX
-            self.stagePosY = self.stageOriginY
+            self.stagePosX = 0
+            self.stagePosY = 0
             self.pathFinished = False
             self.PositionerManager = PositionerManager
             self.Detector = Detector
+
+            # get the position of a stage
+            self.stageOriginX = self.PositionerManager.getPosition('X')
+            self.stageOriginY = self.PositionerManager.getPosition('Y')
+
 
         def moveStageToNextPosition(self):
             self.stagePosIdxMutex.lock()
@@ -281,20 +303,29 @@ class PtychoController(ImConWidgetController):
             if self.stagePosIdx == self.nPos:
                 self.pathFinished = True
                 self.stagePosIdx = -1
-                pos = [self.stageOriginX,self.stageOriginY]
+                pos = [0,0]
             else:
                 pos = self.coordinates[self.stagePosIdx]
 
             # move stage
+            currentX = self.PositionerManager.getPosition('X') - self.stageOriginX
+            currentY = self.PositionerManager.getPosition('Y') - self.stageOriginY
+            print(f'current rel. position x: {currentX}')
+            print(f'current rel. position y: {currentY}')
+           
+            # move the stage
+            print(f'stage moving')
+            print(f'stages would move x by {pos[0] - currentX}')
+            print(f'stages would move y by {pos[1] - currentY}')
+            self.PositionerManager.move(pos[0] - currentX,'X')
+            self.PositionerManager.move(pos[1] - currentY,'Y')
+            self.stagePosX = self.PositionerManager.getPosition('X') - self.stageOriginX
+            self.stagePosY = self.PositionerManager.getPosition('Y') - self.stageOriginY
 
-            # TODO: termporarly not moving .. check the funtionality
-            #myTempx = self.PositionerManager.move(0,'x')
-            #myTempy = self.PositionerManager.move(0,'y')
+            print(f'new rel. position x: {self.stagePosX}')
+            print(f'new rel. position y: {self.stagePosY}')
 
-            time.sleep(0.3)
 
-            self.stagePosX = pos[0]
-            self.stagePosY = pos[1]
 
             # take image
             self.Detector.startAcquisition()

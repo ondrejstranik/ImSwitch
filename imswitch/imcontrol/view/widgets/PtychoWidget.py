@@ -88,6 +88,10 @@ class PtychoWidget(NapariHybridWidget):
                     {   "name": "camera name",
                         "type": "str",
                         "value": "cam1",
+                    },
+                    {   "name": "positioner name",
+                        "type": "str",
+                        "value": "pos1",
                     }
                 ],
             }
