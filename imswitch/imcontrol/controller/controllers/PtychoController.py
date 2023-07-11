@@ -36,6 +36,8 @@ class PtychoController(ImConWidgetController):
             self._setupInfo.ptychoInfo.savingPath)
         self._widget.setParameterValue("Saving filename",
             self._setupInfo.ptychoInfo.filename)
+        self._widget.setParameterValue("Saving dark filename",
+            self._setupInfo.ptychoInfo.filenamedark)
         self._widget.setParameterValue("wavelength",
             self._setupInfo.ptychoInfo.wavelength_nm)
 
@@ -67,6 +69,10 @@ class PtychoController(ImConWidgetController):
         # wavelength
         self.wavelength = None
 
+        # dark recording
+        self.darkRecording = False
+        self.nDarkRecording = 5
+
         # define gridgenerator
         self.grid_generator = GridGenerator()
         # fixed grid parameters
@@ -76,6 +82,7 @@ class PtychoController(ImConWidgetController):
         # parameters for the recording
         self.storage = None
         self.fullfilename = None
+        self.filenamedark = None
   
         # prepare gui
         self.updateParametersFromWidget()
@@ -86,6 +93,7 @@ class PtychoController(ImConWidgetController):
         
         # Connect PtychoWidget signals
         self._widget.sigStartMeasurement.connect(self.startMeasurement)
+        self._widget.sigDarkMeasurement.connect(self.darkMeasurement)
         self._widget.sigStopMeasurement.connect(self.interuptMeausurement)
         self._widget.sigUpdateParameters.connect(self.updateParametersFromWidget)
 
@@ -111,6 +119,8 @@ class PtychoController(ImConWidgetController):
             self._widget.getParameterValue("Saving folder"),
             self._widget.getParameterValue("Saving filename")
         )
+        self.filenamedark = self._widget.getParameterValue("Saving dark filename")
+
         self.grid_generator.prepare()
         self._widget._plotPath(self.grid_generator.coordinates)
 
@@ -136,9 +146,31 @@ class PtychoController(ImConWidgetController):
             self._widget.getParameterValue("Saving folder"),
             newFilename)
 
-    def recordDark(self):
-        pass
+    def darkMeasurement(self):
+        # TODO: set propertly aotf/laser widget after the recodring is done
+        self.darkRecording = True
+        self.fullfilename = Path(self._widget.getParameterValue("Saving folder"),self.filenamedark)
+        self.__logger.debug(f'filename = {self.fullfilename}')
 
+        # turn off the light
+        try:
+            splitString = self.wavelength.split("/")
+            if splitString[0] == 'laser':
+                self._master.lasersManager._subManagers[splitString[1]].setEnabled(False)
+                self.__logger.debug(f'laser {splitString[1]} switched off')
+            if splitString[0] == 'aotf':
+                mychannel = int(splitString[1])-1
+                mywavelength = self._master.aotfManager.getChannelWavelength(mychannel)
+                self._master.aotfManager.setChannel(mychannel,mywavelength,0)
+                self.__logger.debug(f'aotf channel {mychannel} switched off')
+        except:
+            self.__logger.debug(f'could not switch off the light source')
+
+        # set the grid path to  zero
+        self.grid_generator.coordinates = np.zeros((self.nDarkRecording,2))
+        self.__logger.debug(f'dark positions {self.grid_generator.coordinates}')
+
+        self.startMeasurement()
 
     def startMeasurement(self):
         ''' prepare all the variable for recording and gui'''
@@ -162,7 +194,6 @@ class PtychoController(ImConWidgetController):
         except:
             try:
                 splitString = self.wavelength.split("/")
-                self.__logger.debug(f'{splitString}')
                 if splitString[0] == 'laser':
                     mywavelength = self._master.lasersManager.__getitem__(splitString[1]).wavelength
                     self.__logger.debug(f'wavelength from laser .. {mywavelength}')
@@ -227,13 +258,19 @@ class PtychoController(ImConWidgetController):
         self.stageWorker.stagePosIdx,
         self.stageWorker.nPos)
 
-        self.increaseIdxOfFilename()
-
-
-
         # close the thread
         self.stageThread.quit()
         self.stageThread.wait()
+
+        if not self.darkRecording:
+            self.increaseIdxOfFilename()
+        else:
+            self.darkRecording = False
+                   
+            
+        self.updateParametersFromWidget()
+
+
 
     def interuptMeausurement(self):
         ''' interupt the measurment sequence before regular end'''

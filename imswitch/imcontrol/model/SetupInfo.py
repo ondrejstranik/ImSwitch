@@ -288,6 +288,8 @@ class PtychoInfo:
     """ path to save files"""
     filename: Optional["str"] = "ptychodata"
     """ path to save files"""
+    filenamedark: Optional["str"] = "ptychodark"
+    """ path to save files"""
     wavelength_nm: Optional["str"] = "500"
     """ wavelenght (as a string) or light source identification in the form:
     1. laser/laserName  

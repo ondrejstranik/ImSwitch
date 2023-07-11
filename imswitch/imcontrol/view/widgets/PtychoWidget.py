@@ -18,6 +18,7 @@ class PtychoWidget(NapariHybridWidget):
     sigStartMeasurement = QtCore.Signal()
     sigStopMeasurement = QtCore.Signal()
     sigUpdateParameters = QtCore.Signal()
+    sigDarkMeasurement = QtCore.Signal()
 
 
     def __post_init__(self, *args, **kwargs):
@@ -79,11 +80,17 @@ class PtychoWidget(NapariHybridWidget):
                     },
                     {   "name": "Saving folder",
                         "type": "str",
-                        "value": r"C:"},
+                        "value": r"C:",
+                    },
                     {
                         "name": "Saving filename",
                         "type": "str",
                         "value": r"ptychodata",
+                    },
+                    {
+                        "name": "Saving dark filename",
+                        "type": "str",
+                        "value": r"ptychodark",
                     },
                     {   "name": "camera name",
                         "type": "str",
@@ -128,11 +135,14 @@ class PtychoWidget(NapariHybridWidget):
 
         # create two buttons for starting and stopping the acquisition
         self.acquisitionPanel.buttonSM = QtWidgets.QPushButton("Start Measurement")
+        self.acquisitionPanel.buttonDM = QtWidgets.QPushButton("Dark Measurement")
         self.acquisitionPanel.buttonStM = QtWidgets.QPushButton("Stop Measurement")
+
         self.acquisitionPanel.buttonStM.setEnabled(False)
 
         # place the items on the grid
         self.acquisitionPanel.gridLayout.addWidget(self.acquisitionPanel.buttonSM)
+        self.acquisitionPanel.gridLayout.addWidget(self.acquisitionPanel.buttonDM)
         self.acquisitionPanel.gridLayout.addWidget(self.acquisitionPanel.buttonStM)
 
         # 3. Panel  - image view
@@ -149,6 +159,7 @@ class PtychoWidget(NapariHybridWidget):
         # Connect signals
         self.parameterPanel.buttonUP.pressed.connect(self.sigUpdateParameters)
         self.acquisitionPanel.buttonSM.pressed.connect(self.sigStartMeasurement)
+        self.acquisitionPanel.buttonDM.pressed.connect(self.sigDarkMeasurement)
         self.acquisitionPanel.buttonStM.pressed.connect(self.sigStopMeasurement)
 
 
@@ -229,6 +240,7 @@ class PtychoWidget(NapariHybridWidget):
 
         self.parameterPanel.buttonUP.setEnabled(False)
         self.acquisitionPanel.buttonSM.setEnabled(False)
+        self.acquisitionPanel.buttonDM.setEnabled(False)
         self.acquisitionPanel.buttonStM.setEnabled(True)
 
     def _guiStopMeasurement(self):
@@ -237,6 +249,7 @@ class PtychoWidget(NapariHybridWidget):
         # set gui
         self.parameterPanel.buttonUP.setEnabled(True)
         self.acquisitionPanel.buttonSM.setEnabled(True)
+        self.acquisitionPanel.buttonDM.setEnabled(True)
         self.acquisitionPanel.buttonStM.setEnabled(False)
 
     def getParameterValue(self,name:str, key="general"):
