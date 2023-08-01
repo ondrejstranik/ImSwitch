@@ -60,9 +60,6 @@ class MasterController:
             else:
                 self.__logger.error('AOTFManager in SetupInfo["aotf"] not recognised')
                 return
-        else:
-                self.aotfManager = NKTAotfManager(self.__setupInfo.aotf,**lowLevelManagers)
-
 
         if self.__setupInfo.microscopeStand:
             self.standManager = StandManager(self.__setupInfo.microscopeStand,
