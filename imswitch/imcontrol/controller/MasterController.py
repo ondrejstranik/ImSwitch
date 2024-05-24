@@ -1,7 +1,7 @@
 from imswitch.imcommon.model import VFileItem, initLogger
 from imswitch.imcontrol.model import (
     DetectorsManager, LasersManager, MultiManager, NidaqManager, PositionersManager, RecordingManager, RS232sManager, 
-    ScanManagerPointScan, ScanManagerBase, ScanManagerMoNaLISA, SLMManager, SLMbaseManager, StandManager, RotatorsManager,
+    ScanManagerPointScan, ScanManagerBase, ScanManagerMoNaLISA, SLMManager, SLMScreenManager, StandManager, RotatorsManager,
     NKTAotfManager
 )
 
@@ -44,8 +44,8 @@ class MasterController:
         if self.__setupInfo.slm:
             if self.__setupInfo.slm.managerName == "SLMManager":
                 self.slmManager = SLMManager(self.__setupInfo.slm)
-            elif self.__setupInfo.slm.managerName == "SLMbaseManager":
-                self.slmManager = SLMbaseManager(self.__setupInfo.slm)
+            elif self.__setupInfo.slm.managerName == "SLMScreenManager":
+                self.slmManager = SLMScreenManager(self.__setupInfo.slm)
             else:
                 self.__logger.error(
                     'SLMManager in SetupInfo["slm"] not recognized, choose one of the following:'
@@ -97,7 +97,10 @@ class MasterController:
         self.recordingManager.sigMemoryRecordingAvailable.connect(self.memoryRecordingAvailable)
 
         if self.__setupInfo.slm:
-            self.slmManager.sigSLMMaskUpdated.connect(cc.sigSLMMaskUpdated)
+            if self.__setupInfo.slm.managerName == "SLMManager":
+                self.slmManager.sigSLMMaskUpdated.connect(cc.sigSLMMaskUpdated)
+            elif self.__setupInfo.slm.managerName == "SLMScreenManager":
+                self.slmManager.sigSLMUpdated.connect(cc.sigSLMUpdated)
 
     def memoryRecordingAvailable(self, name, file, filePath, savedToDisk):
         self.__moduleCommChannel.memoryRecordings[name] = VFileItem(

@@ -13,8 +13,7 @@ from .MotCorrController import MotCorrController
 from .PositionerController import PositionerController
 from .RecordingController import RecordingController
 from .SLMController import SLMController
-from .SLMbaseController import SLMbaseController
-from .SLMbasicController import SLMbasicController
+from .SLMBasicController import SLMBasicController
 from .ScanControllerBase import ScanControllerBase
 from .ScanControllerMoNaLISA import ScanControllerMoNaLISA
 from .ScanControllerPointScan import ScanControllerPointScan

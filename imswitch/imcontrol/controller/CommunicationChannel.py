@@ -62,6 +62,8 @@ class CommunicationChannel(SignalInterface):
 
     sigSLMMaskUpdated = Signal(object)  # (mask)
 
+    sigSLMUpdated = Signal(object)
+
     sigToggleBlockScanWidget = Signal(bool)
 
     sigSnapImg = Signal()

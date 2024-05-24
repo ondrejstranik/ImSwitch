@@ -74,7 +74,11 @@ class SLMDisplay(QtWidgets.QLabel):
             self.setMonitor(self.preferredMonitor)
 
             # Show warning if SLM display is shown over ImSwitch
-            parentMonitorName = self._parent.screen().name()
+            # disable if Imswitch monitor not known
+            if self._parent is not None:
+                parentMonitorName = self._parent.screen().name()
+            else:
+                self.hasShownMonitorWarning = True
             if (not self.hasShownMonitorWarning and
                     parentMonitorName and parentMonitorName == self.monitorName):
                 QtWidgets.QMessageBox.information(

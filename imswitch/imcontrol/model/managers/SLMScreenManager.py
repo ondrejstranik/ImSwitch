@@ -1,14 +1,13 @@
 import numpy as np
-
+import skimage
+import skimage.transform
+from qtpy import QtCore, QtGui, QtWidgets
 
 from imswitch.imcommon.framework import Signal, SignalInterface
 from imswitch.imcommon.model import initLogger
-from imswitch.imcontrol.view import SLMDisplay
 
-
-
-class SLMbaseManager(SignalInterface):
-    sigSLMMaskUpdated = Signal(object)  # (maskCombined)
+class SLMScreenManager(SignalInterface):
+    sigSLMUpdated = Signal(object)
 
     def __init__(self, slmInfo, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,12 +25,19 @@ class SLMbaseManager(SignalInterface):
         self.__logger.debug(f'slmInfo : \n {self.__slmInfo}')
 
         self.slmImg = np.zeros((self.__slmSize[1],self.__slmSize[0]), dtype=np.uint8)
-        self.visible = False
+        self.slmActive = False
 
-        self.slmDisplay = SLMDisplay(self, self.__monitorIdx)
+        self.slmDisplay = SLMDisplay(None, self.__monitorIdx)
         self.update()
-        self.slmDisplay.setVisible(self.visible)
 
+        self.slmDisplay.sigClosed.connect(self.SLMDisplayClosed)
+
+
+    def getCurrentImage(self):
+        return self.slmImg
+    
+    def setNewImage(self,image):
+        self.slmImg = image
 
     def update(self): 
         ''' update the SLM. 
@@ -43,7 +49,7 @@ class SLMbaseManager(SignalInterface):
         arr = self.slmImg
         
         # Padding: Like they do in the software
-        pad = np.zeros((600, 8), dtype=np.uint8)
+        pad = np.zeros((self.__slmInfo.height, 8), dtype=np.uint8)
         arr = np.append(arr, pad, 1)
 
         # Create final image array
@@ -57,11 +63,116 @@ class SLMbaseManager(SignalInterface):
         else:
             img = arr
 
+        if not self.slmActive:
+            self.slmActive = True
+            self.slmDisplay.setVisible(True)
+
         self.slmDisplay.updateImage(img)
         
         # emit the signal
-        self.sigSLMMaskUpdated.emit(self.slmImg)
+        self.sigSLMUpdated.emit(self.slmImg)
     
+    def SLMDisplayClosed(self):
+        self.slmActive = False
+
+
+class SLMDisplay(QtWidgets.QLabel):
+    """ Full-screen SLM display. """
+
+    sigClosed = QtCore.Signal()
+
+    def __init__(self, parent, preferredMonitor):
+        super().__init__()
+        self.__logger = initLogger(self)
+
+        self._parent = parent
+
+        self.setWindowTitle('SLM display')
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.setWindowState(QtCore.Qt.WindowFullScreen)
+
+        self.setMonitor(preferredMonitor)
+        self.imgArr = np.zeros((2, 2))
+        self.hasShownMonitorWarning = False
+
+    def setMonitor(self, monitor, updateImage=False):
+        app = QtWidgets.QApplication.instance()
+        screens = app.screens()
+
+        self.preferredMonitor = monitor
+        tryMonitor = monitor
+
+        if len(screens) < 1:
+            raise RuntimeError('No monitors available, cannot set monitor for SLM')
+
+        while tryMonitor > len(screens) - 1:
+            tryMonitor -= 1  # Try other monitor
+
+        screenGeom = screens[tryMonitor].geometry()
+        self.setGeometry(screenGeom)
+
+        self.monitor = tryMonitor
+        self.monitorName = screens[tryMonitor].name()
+        self.imgWidth = screenGeom.width()
+        self.imgHeight = screenGeom.height()
+
+        if updateImage:
+            self.updateImage(self.imgArr)
+
+    def updateImage(self, imgArr):
+        self.imgArr = imgArr
+
+        if not self.isVisible():
+            return
+
+        imgScaled = skimage.img_as_ubyte(
+            skimage.transform.resize(self.imgArr, (self.imgHeight, self.imgWidth), order=0)
+        )
+
+        qimage = QtGui.QImage(
+            imgScaled, imgScaled.shape[1], imgScaled.shape[0], imgScaled.shape[1] * 3,
+            QtGui.QImage.Format_RGB888
+        )
+
+        qpixmap = QtGui.QPixmap(qimage)
+        self.setPixmap(qpixmap)
+
+    def setVisible(self, visible):
+        super().setVisible(visible)
+
+        if visible:
+            # Update monitor to display on (in case the user has (dis)connected a monitor)
+            self.setMonitor(self.preferredMonitor)
+
+            # Show warning if SLM display is shown over ImSwitch
+            # disable if Imswitch monitor not known
+            if self._parent is not None:
+                parentMonitorName = self._parent.screen().name()
+            else:
+                self.hasShownMonitorWarning = True
+            if (not self.hasShownMonitorWarning and
+                    parentMonitorName and parentMonitorName == self.monitorName):
+                QtWidgets.QMessageBox.information(
+                    self, 'SLM display information',
+                    f'The SLM display will be displayed over ImSwitch, since it is configured to be'
+                    f' displayed on screen {self.monitor}, which is the same screen that ImSwitch'
+                    f' currently is displayed on. You can close the SLM display by pressing the'
+                    f' escape key on your keyboard.'
+                )
+                self.hasShownMonitorWarning = True
+
+            # Focus window
+            self.activateWindow()
+
+            # Update image
+            #self.updateImage(self.imgArr)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.close()
+
+    def closeEvent(self, event):
+        self.sigClosed.emit()
 
 
 # Copyright (C) 2020-2021 ImSwitch developers

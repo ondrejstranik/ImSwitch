@@ -7,8 +7,8 @@ from imswitch.imcommon.model import dirtools, initLogger
 from ..basecontrollers import ImConWidgetController
 
 
-class SLMBasicController(ImConWidgetController):
-    """Linked to SLMBasicWidget."""
+class HoloMInFluxController(ImConWidgetController):
+    """Linked to HoloMinFluxWidget."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,7 +103,7 @@ class SLMBasicController(ImConWidgetController):
             self.patternImage[[0, -1],:] = self.contrast + self.offset
             self.patternImage[:,[0,-1]] = self.contrast + self.offset
             self.patternImage[self.heigth//2,:] = self.contrast + self.offset
-            self.patternImage[:,self.width] = self.contrast + self.offset
+            self.patternImage[:,self.width//2] = self.contrast + self.offset
 
 
 
